@@ -1,16 +1,18 @@
 """
 JT Nodes for ComfyUI - Custom nodes collection
 
-A collection of custom nodes for ComfyUI providing image processing capabilities:
-- Brightness adjustment
-- Custom image saving with path control
+A collection of custom nodes for ComfyUI providing various capabilities:
+- Image processing (brightness adjustment)
+- File management (custom image saving with path control)
+- Text tools (serial number generator)
+- AI integration (Siliconflow LLM API)
 
 Author: JinT
-Version: 1.0.0
+Version: 1.1.0
 License: MIT
 """
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 __author__ = "JinT"
 from .nodes import NODE_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS
 
