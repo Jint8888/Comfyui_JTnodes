@@ -9,13 +9,19 @@ import numpy as np
 from pathlib import Path
 from PIL import Image
 from PIL.PngImagePlugin import PngInfo
+from .LLM_siliconflow import SiliconflowFreeNode
 
 class JTBrightnessNode:
     """
-    A basic image processing node that adjusts image brightness
+    A basic image processing node that adjusts image brightness.
+    
+    Attributes:
+        RETURN_TYPES (tuple): Defines the output types for the node
+        FUNCTION (str): Name of the processing function
+        CATEGORY (str): Node category in the UI
     
     Returns:
-        IMAGE: Processed image with adjusted brightness
+        tuple: Contains the processed image tensor with adjusted brightness
     """
     
     @classmethod
@@ -37,16 +43,19 @@ class JTBrightnessNode:
     FUNCTION = "process_image"
     CATEGORY = "JT/image"
 
-    def process_image(self, image, brightness):
+    def process_image(self, image: torch.Tensor, brightness: float) -> tuple[torch.Tensor]:
         """
-        Adjust the brightness of the input image
+        Adjust the brightness of the input image.
         
         Args:
-            image: Input image tensor (B, H, W, C)
+            image: Input image tensor of shape (B, H, W, C)
             brightness: Brightness adjustment factor (float between 0.0 and 2.0)
         
         Returns:
-            Processed image tensor with adjusted brightness
+            tuple: Contains the processed image tensor with adjusted brightness
+            
+        Raises:
+            ValueError: If image is not a torch.Tensor
         """
         # 验证输入
         if not isinstance(image, torch.Tensor):
@@ -200,12 +209,82 @@ class JTImagesavetopath:
             len(saved_paths)                # 保存数量
         )
 
+class JTcounter:
+    """
+    A number sequence generator that converts integers into formatted serial numbers.
+    
+    Attributes:
+        RETURN_TYPES (tuple): Defines the output type as STRING
+        FUNCTION (str): Name of the processing function
+        CATEGORY (str): Node category in the UI
+        
+    Features:
+        - Supports 1-5 digit serial numbers
+        - Automatic handling of number overflow
+        - Smart digit padding based on input
+    """
+    
+    @classmethod
+    def INPUT_TYPES(cls):
+        """定义输入参数"""
+        return {
+            "required": {
+                "number": ("INT", {
+                    "default": 1,
+                    "min": 0,
+                    "max": 99999,
+                    "step": 1,
+                    "display": "number"
+                }),
+                "digits": ("INT", {
+                    "default": 4,
+                    "min": 1,
+                    "max": 5,
+                    "step": 1,
+                    "display": "number",
+                    "label": "序列号位数(1-5)"
+                }),
+            },
+        }
+    
+    RETURN_TYPES = ("STRING",)
+    FUNCTION = "generate_serial"
+    CATEGORY = "JT/text"
+
+    def generate_serial(self, number: int, digits: int) -> tuple[str]:
+        """
+        Generate a formatted serial number string.
+        
+        Args:
+            number: Input number to convert
+            digits: Number of digits for the serial (1-5)
+            
+        Returns:
+            tuple: Contains the formatted serial number string
+        """
+        # 验证并限制位数范围(1-5)
+        digits = min(max(digits, 1), 5)
+        
+        # 计算数字实际需要的位数
+        required_digits = len(str(number)) if number > 0 else 1
+        
+        # 确定最终位数(不超过5位)
+        final_digits = min(max(digits, required_digits), 5)
+        
+        # 格式化为指定位数的字符串
+        return (f"{number:0{final_digits}d}",)
+
+# Node registration mappings
 NODE_CLASS_MAPPINGS = {
-    "JTBrightnessAdjustment": JTBrightnessNode,
-    "JTImagesavetopath": JTImagesavetopath
+    "JTBrightness": JTBrightnessNode,
+    "JTImagesavetopath": JTImagesavetopath,
+    "JTcounter": JTcounter,
+    "SiliconflowFree": SiliconflowFreeNode
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "JTBrightnessAdjustment": "JT Brightness Adjustment",
-    "JTImagesavetopath": "JT Save Image to Path"
+    "JTBrightness": "JT Brightness Adjustment",
+    "JTImagesavetopath": "JT Save Image to Path",
+    "JTcounter": "JT Serial Counter",
+    "SiliconflowFree": "JT Siliconflow LLM"
 }

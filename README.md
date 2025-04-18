@@ -1,19 +1,40 @@
 # Comfyui JTnodes
 
-这个项目包含了一些自定义的ComfyUI节点，用于图像处理任务。
+这个项目包含了一些自定义的ComfyUI节点，用于图像处理、AI对话和辅助工具任务。
+
+[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)]()
+[![License](https://img.shields.io/badge/license-MIT-green.svg)]()
 
 ## 功能
 
-目前包含以下节点：
+当前版本 (v1.1.0) 包含以下节点：
 
-- **JT Brightness Adjustment**: 一个简单的图像亮度调节节点
+- **JT Siliconflow LLM**: Siliconflow API对话节点
+  - 输入：
+    - API密钥 (STRING)
+    - 提示词 (STRING，支持多行输入)
+    - 系统设定 (STRING，支持多行输入)
+    - 模型选择 (四种可选模型)
+    - 上下文大小 (INT，0-30)
+    - 最大生成长度 (INT，512-200000)
+  - 输出：
+    - 生成的文本 (STRING)
+    - 完整对话记录 (STRING)
+    - 会话历史 (STRING)
+  - 特点：
+    - 支持多个Siliconflow模型
+    - 支持自定义系统设定
+    - 维护会话历史
+    - 灵活的上下文管理
+
+- **JT Brightness Adjustment**: 图像亮度调节节点
   - 输入：
     - 图像 (IMAGE)
     - 亮度调节系数 (0.0 到 2.0)
   - 输出：
     - 处理后的图像 (IMAGE)
 
-- **JT Save Image to Path**: 增强型图像保存节点
+- **JT Save Image to Path**: 高级图像保存节点，支持灵活的文件命名和批量保存
   - 输入：
     - 图像 (IMAGE)
     - 文件夹路径 (STRING，默认: "/path")
@@ -56,6 +77,18 @@
     - 智能的序号管理系统
     - 灵活的覆盖控制
 
+- **JT Serial Counter**: 序号生成工具节点
+  - 输入：
+    - 数字 (INT，0-99999)
+    - 序号位数 (INT，1-5位)
+  - 输出：
+    - 格式化的序号字符串 (STRING)
+  - 特点：
+    - 支持1-5位序号长度
+    - 智能的位数自动调整
+    - 自动处理数字溢出
+    - 适用于批处理文件命名
+
 ## 安装说明
 
 1. 找到你的ComfyUI安装目录
@@ -67,7 +100,11 @@
    git clone [你的仓库URL]
    # 或直接将 Comfyui_JTnodes 文件夹复制到此目录
    ```
-4. 重启ComfyUI
+4. 安装依赖：
+   ```bash
+   pip install openai>=1.0.0
+   ```
+5. 重启ComfyUI
 
 ## 使用方法
 
@@ -77,25 +114,33 @@
 4. 设置所需参数
 5. 运行工作流
 
-## 开发新节点
+## 系统要求
 
-如果你想添加新的节点，可以按照以下步骤：
-
-1. 在 `nodes.py` 中创建新的节点类
-2. 实现必要的接口：
-   - INPUT_TYPES() - 定义输入参数
-   - RETURN_TYPES - 定义输出类型
-   - FUNCTION - 处理函数名称
-   - CATEGORY - 节点分类
-3. 在 NODE_CLASS_MAPPINGS 和 NODE_DISPLAY_NAME_MAPPINGS 中注册新节点
-
-## 要求
-
-- ComfyUI
-- PyTorch
-- NumPy
-- Pillow(PIL)
+- ComfyUI (最新版本)
+- Python 3.x
+- PyTorch >= 1.12
+- NumPy >= 1.23
+- Pillow (PIL) >= 9.0
+- openai >= 1.0.0
 
 ## 许可证
 
 MIT License
+
+## 更新日志
+
+### v1.1.0
+- 添加 JT Siliconflow LLM 节点，支持以下功能：
+  - Siliconflow API调用
+  - 多模型支持（DeepSeek-V3, QwQ-32B, Qwen2.5-32B-Instruct, DeepSeek-R1）
+  - 会话历史管理
+  - 自定义系统设定
+- 优化API密钥输入显示
+- 更新OpenAI客户端初始化方式
+- 添加新的依赖项要求（openai>=1.0.0）
+
+### v1.0.0
+- 初始版本发布
+- 实现基础图像处理功能
+- 添加高级图像保存功能
+- 添加序号生成工具
