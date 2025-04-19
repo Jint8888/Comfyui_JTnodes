@@ -1,0 +1,14 @@
+[project]
+name = "jtnodes"
+description = "This project contains some custom ComfyUI nodes for image processing, AI conversation, and utility tasks."
+version = "1.0.0"
+license = {file = "LICENSE"}
+
+[project.urls]
+Repository = "https://github.com/Jint8888/Comfyui_JTnodes"
+#  Used by Comfy Registry https://comfyregistry.org
+
+[tool.comfy]
+PublisherId = ""
+DisplayName = "Comfyui_JTnodes"
+Icon = ""
