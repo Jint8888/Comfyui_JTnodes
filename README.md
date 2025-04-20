@@ -2,12 +2,12 @@
 
 这个项目包含了一些自定义的ComfyUI节点，用于图像处理、AI对话和辅助工具任务。
 
-[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)]()
+[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)]()
 [![License](https://img.shields.io/badge/license-MIT-green.svg)]()
 
 ## 功能
 
-当前版本 (v1.1.0) 包含以下节点：
+当前版本 (v1.2.0) 包含以下节点：
 
 - **JT Siliconflow LLM**: Siliconflow API对话节点
   - 输入：
@@ -89,6 +89,37 @@
     - 自动处理数字溢出
     - 适用于批处理文件命名
 
+- **JT Save Text to File**: 文本文件保存节点
+  - 输入：
+    - 文本内容 (STRING，支持多行输入)
+    - 文件夹路径 (STRING，默认: "/path")
+    - 文件名 (STRING，默认: "output.txt")
+    - 写入模式 (COMBO ["append", "overwrite"]，默认: "append")
+  - 输出：
+    - 保存的文本内容 (STRING)
+  - 特点：
+    - 支持追加和覆盖两种写入模式
+    - 自动创建目录结构
+    - 自动处理换行符
+    - 支持多行文本保存
+
+- **JT Save Text to Excel**: Excel表格保存节点
+  - 输入：
+    - 文本内容 (STRING，支持多行输入)
+    - 文件夹路径 (STRING，默认: "/path")
+    - 文件名 (STRING，默认: "output")
+    - 工作表名 (STRING，默认: "Sheet1")
+    - 行号 (INT，1-1048576)
+    - 列号 (INT，1-16384)
+  - 输出：
+    - 保存到表格中的第一行文本 (STRING)
+  - 特点：
+    - 自动处理文件扩展名(.xlsx)
+    - 支持新建或更新已有文件
+    - 可指定单元格位置
+    - 如果输入文本包含多行，仅保存第一行
+    - 自动创建或使用指定工作表
+
 ## 安装说明
 
 1. 找到你的ComfyUI安装目录
@@ -102,7 +133,7 @@
    ```
 4. 安装依赖：
    ```bash
-   pip install openai>=1.0.0
+   pip install openai>=1.0.0 openpyxl>=3.0.0
    ```
 5. 重启ComfyUI
 
@@ -122,12 +153,20 @@
 - NumPy >= 1.23
 - Pillow (PIL) >= 9.0
 - openai >= 1.0.0
+- openpyxl >= 3.0.0
 
 ## 许可证
 
 MIT License
 
 ## 更新日志
+
+### v1.2.0
+- 添加文本处理节点：
+  - JT Save Text to File：支持文本文件的追加和覆盖写入
+  - JT Save Text to Excel：支持将文本保存到Excel表格指定位置
+- 新增依赖项 openpyxl >= 3.0.0
+- 优化代码结构和注释
 
 ### v1.1.0
 - 添加 JT Siliconflow LLM 节点，支持以下功能：

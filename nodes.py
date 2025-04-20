@@ -9,6 +9,8 @@ import numpy as np
 from pathlib import Path
 from PIL import Image
 from PIL.PngImagePlugin import PngInfo
+import openpyxl
+from openpyxl import Workbook
 from .LLM_siliconflow import SiliconflowFreeNode
 
 class JTBrightnessNode:
@@ -274,17 +276,192 @@ class JTcounter:
         # 格式化为指定位数的字符串
         return (f"{number:0{final_digits}d}",)
 
+class JTSaveTextToFile:
+    """文本文件保存节点，支持追加和覆盖模式
+    
+    Attributes:
+        RETURN_TYPES (tuple): 定义输出类型为STRING
+        FUNCTION (str): 处理函数名
+        CATEGORY (str): 节点分类
+    """
+    
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "text": ("STRING", {
+                    "default": "",
+                    "multiline": True
+                }),
+                "folder_path": ("STRING", {
+                    "default": "/path",
+                    "multiline": False
+                }),
+                "filename": ("STRING", {
+                    "default": "output.txt",
+                    "multiline": False
+                }),
+                "write_mode": (["append", "overwrite"], {
+                    "default": "append",
+                    "label": "写入模式"
+                }),
+            },
+        }
+    
+    RETURN_TYPES = ("STRING",)
+    FUNCTION = "save_text"
+    CATEGORY = "JT/text"
+
+    def save_text(self, text: str, folder_path: str, filename: str, write_mode: str) -> tuple[str]:
+        """保存文本到文件
+        
+        Args:
+            text: 文本内容
+            folder_path: 保存目录
+            filename: 文件名
+            write_mode: 写入模式(append/overwrite)
+        """
+        # 创建保存目录
+        save_path = Path(folder_path)
+        save_path.mkdir(parents=True, exist_ok=True)
+        
+        # 完整文件路径
+        file_path = save_path / filename
+        
+        # 写入模式
+        mode = 'a' if write_mode == 'append' else 'w'
+        
+        # 写入文件
+        with open(file_path, mode, encoding='utf-8') as f:
+            # 追加模式下，如果文件存在且非空则添加换行
+            if mode == 'a' and file_path.exists() and file_path.stat().st_size > 0:
+                f.write('\n')
+            f.write(text)
+            
+        return (text,)
+
+class JTSaveTextToExcel:
+    """Excel表格保存节点
+    
+    Attributes:
+        RETURN_TYPES (tuple): 定义输出类型为STRING
+        FUNCTION (str): 处理函数名
+        CATEGORY (str): 节点分类
+        
+    Notes:
+        - 自动处理文件扩展名(.xlsx)
+        - 支持指定工作表名和单元格位置
+        - 自动创建或更新工作表
+        - 如果输入文本包含多行，仅保存第一行
+        - 输出实际保存到表格中的内容（第一行文本）
+    """
+    
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "text": ("STRING", {
+                    "default": "",
+                    "multiline": True
+                }),
+                "folder_path": ("STRING", {
+                    "default": "/path",
+                    "multiline": False
+                }),
+                "filename": ("STRING", {
+                    "default": "output",
+                    "multiline": False
+                }),
+                "sheet_name": ("STRING", {
+                    "default": "Sheet1",
+                    "multiline": False
+                }),
+                "row": ("INT", {
+                    "default": 1,
+                    "min": 1,
+                    "max": 1048576,  # Excel最大行数
+                    "step": 1
+                }),
+                "column": ("INT", {
+                    "default": 1,
+                    "min": 1,
+                    "max": 16384,  # Excel最大列数
+                    "step": 1
+                })
+            },
+        }
+    
+    RETURN_TYPES = ("STRING",)
+    FUNCTION = "save_to_excel"
+    CATEGORY = "JT/text"
+
+    def save_to_excel(self, text: str, folder_path: str, filename: str,
+                     sheet_name: str, row: int, column: int) -> tuple[str]:
+        """保存文本到Excel表格
+        
+        Args:
+            text: 文本内容
+            folder_path: 保存目录
+            filename: 文件名(可带扩展名)
+            sheet_name: 工作表名
+            row: 起始行号
+            column: 起始列号
+        """
+        # 创建保存目录
+        save_path = Path(folder_path)
+        save_path.mkdir(parents=True, exist_ok=True)
+        
+        # 处理文件名
+        try:
+            # 处理文件扩展名
+            if not any(filename.endswith(ext) for ext in ['.xlsx', '.xls']):
+                filename = f"{filename}.xlsx"
+            
+            # 完整文件路径
+            file_path = save_path / filename
+            
+            # 获取或创建工作簿
+            wb = openpyxl.load_workbook(file_path) if file_path.exists() else Workbook()
+            
+            # 获取或创建工作表
+            if sheet_name in wb.sheetnames:
+                ws = wb[sheet_name]
+            else:
+                ws = wb.create_sheet(sheet_name)
+                # 如果是默认的Sheet且不是目标工作表，删除它
+                if "Sheet" in wb.sheetnames and sheet_name != "Sheet":
+                    wb.remove(wb["Sheet"])
+            
+            # 处理文本内容（如果有多行，只取第一行）
+            first_line = text.split('\n')[0] if text else ""
+            
+            # 写入文本内容
+            ws.cell(row=row, column=column, value=first_line)
+            
+            # 保存文件
+            wb.save(file_path)
+            
+        except Exception as e:
+            raise RuntimeError(f"保存Excel文件时出错: {str(e)}")
+        
+        # 返回实际保存的内容
+        return (first_line,)
+
 # Node registration mappings
 NODE_CLASS_MAPPINGS = {
     "JTBrightness": JTBrightnessNode,
     "JTImagesavetopath": JTImagesavetopath,
     "JTcounter": JTcounter,
-    "SiliconflowFree": SiliconflowFreeNode
+    "SiliconflowFree": SiliconflowFreeNode,
+    "JTSaveTextToFile": JTSaveTextToFile,
+    "JTSaveTextToExcel": JTSaveTextToExcel
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "JTBrightness": "JT Brightness Adjustment",
     "JTImagesavetopath": "JT Save Image to Path",
     "JTcounter": "JT Serial Counter",
-    "SiliconflowFree": "JT Siliconflow LLM"
+    "SiliconflowFree": "JT Siliconflow LLM",
+    "JTSaveTextToFile": "JT Save Text to File",
+    "JTSaveTextToExcel": "JT Save Text to Excel"
 }
