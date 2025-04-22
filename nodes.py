@@ -183,13 +183,29 @@ class JTImagesavetopath:
                 continue
                 
             # 转换并保存图片
-            img = Image.fromarray((images[idx] * 255).clip(0, 255).astype(np.uint8))
+            # 转换图像数据
+            i = images[idx]
+            if len(i.shape) == 3 and i.shape[2] == 4:  # 带有alpha通道
+                # 分别处理RGB和alpha通道
+                rgb = (i[:, :, :3] * 255).clip(0, 255).astype(np.uint8)
+                alpha = (i[:, :, 3] * 255).clip(0, 255).astype(np.uint8)
+                # 合并通道
+                rgba = np.dstack((rgb, alpha))
+                img = Image.fromarray(rgba, mode='RGBA')
+            else:  # 普通RGB图像
+                rgb = (i * 255).clip(0, 255).astype(np.uint8)
+                img = Image.fromarray(rgb, mode='RGB')
             
             # 设置保存参数
-            save_params = {
-                "format": "PNG" if format == "PNG" else "JPEG",
-                "quality": 95 if format == "JPG" else None
-            }
+            save_params = {}
+            if format == "PNG":
+                save_params["format"] = "PNG"
+                if img.mode == 'RGBA':
+                    save_params["optimize"] = False  # 避免优化影响alpha通道
+                    save_params["compress_level"] = 1  # 使用较低压缩率
+            else:
+                save_params["format"] = "JPEG"
+                save_params["quality"] = 95
             
             # 添加PNG元数据
             if format == "PNG" and (prompt or extra_pnginfo):
@@ -447,8 +463,225 @@ class JTSaveTextToExcel:
         # 返回实际保存的内容
         return (first_line,)
 
+class JTFindTextFromExcel:
+    """Find specified text in Excel file and return related information
+    
+    Attributes:
+        RETURN_TYPES (tuple): Output types definition
+        FUNCTION (str): Processing function name
+        CATEGORY (str): Node category in UI
+        
+    Features:
+        - Find specified text in Excel file
+        - Return text from specified column in the same row
+        - Return row and column numbers of found text
+        
+    Notes:
+        - Automatically handles Excel file extension (.xlsx)
+        - Creates directory if not exists
+    """
+    
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "Excel_Filepath": ("STRING", {
+                    "default": "/path",
+                    "multiline": False,
+                    "label": "Excel_Filepath",
+                    "paste": True
+                }),
+                "Excel_Filename": ("STRING", {
+                    "default": "table",
+                    "multiline": False,
+                    "label": "Excel_Filename",
+                    "paste": True
+                }),
+                "Find_Text": ("STRING", {
+                    "default": "",
+                    "multiline": False,
+                    "label": "Find_Text",
+                    "paste": True
+                }),
+                "Output_Column": ("INT", {
+                    "default": 1,
+                    "min": 1,
+                    "max": 16384,  # Excel max column number
+                    "step": 1,
+                    "label": "Output_Column",
+                    "paste": True,
+                    "round": True
+                }),
+            },
+        }
+    
+    RETURN_TYPES = ("STRING", "INT", "INT")
+    RETURN_NAMES = ("found_text", "row_number", "column_number")
+    FUNCTION = "find_in_excel"
+    CATEGORY = "JT/text"
+
+    def find_in_excel(self, Excel_Filepath: str, Excel_Filename: str, Find_Text: str, Output_Column: int) -> tuple[str, int, int]:
+        """Find text in Excel file
+        
+        Args:
+            Excel_Filepath: Excel file directory path
+            Excel_Filename: Excel file name
+            Find_Text: Text to search for
+            Output_Column: Column number to output text from
+            
+        Returns:
+            tuple: (found text, row number, column number)
+        """
+        try:
+            # Process file path
+            file_dir = Path(Excel_Filepath)
+            # Ensure directory exists
+            file_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Handle file extension
+            if not any(Excel_Filename.endswith(ext) for ext in ['.xlsx', '.xls']):
+                Excel_Filename = f"{Excel_Filename}.xlsx"
+                
+            # Full file path
+            file_path = file_dir / Excel_Filename
+            
+            # Load Excel file
+            wb = openpyxl.load_workbook(file_path, data_only=True)
+            ws = wb.active
+            
+            # Search text in cells
+            found_text = ""
+            row_number = 0
+            column_number = 0
+            
+            for row in range(1, ws.max_row + 1):
+                for col in range(1, ws.max_column + 1):
+                    cell = ws.cell(row=row, column=col)
+                    if cell.value and str(cell.value) == Find_Text:
+                        # Get found position
+                        row_number = row
+                        column_number = col
+                        # Get text from output column
+                        output_cell = ws.cell(row=row, column=Output_Column)
+                        found_text = str(output_cell.value) if output_cell.value is not None else ""
+                        break
+                if row_number > 0:  # Stop searching if found
+                    break
+            
+            wb.close()
+            return (found_text, row_number, column_number)
+            
+        except Exception as e:
+            raise RuntimeError(f"Error processing Excel file: {str(e)}")
+
+class JTReadFromExcel:
+    """Read text from specified position in Excel file
+    
+    Attributes:
+        RETURN_TYPES (tuple): Output types definition
+        FUNCTION (str): Processing function name
+        CATEGORY (str): Node category in UI
+        
+    Features:
+        - Read text from specified row and column
+        - Return the text and its position
+        
+    Notes:
+        - Automatically handles Excel file extension (.xlsx)
+        - Creates directory if not exists
+    """
+    
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "Excel_Filepath": ("STRING", {
+                    "default": "/path",
+                    "multiline": False,
+                    "label": "Excel_Filepath",
+                    "paste": True
+                }),
+                "Excel_Filename": ("STRING", {
+                    "default": "table",
+                    "multiline": False,
+                    "label": "Excel_Filename",
+                    "paste": True
+                }),
+                "Row_Number": ("INT", {
+                    "default": 1,
+                    "min": 1,
+                    "max": 1048576,  # Excel max row number
+                    "step": 1,
+                    "label": "Row_Number",
+                    "paste": True,
+                    "round": True
+                }),
+                "Column_Number": ("INT", {
+                    "default": 1,
+                    "min": 1,
+                    "max": 16384,  # Excel max column number
+                    "step": 1,
+                    "label": "Column_Number",
+                    "paste": True,
+                    "round": True
+                })
+            },
+        }
+    
+    RETURN_TYPES = ("STRING", "INT", "INT")
+    RETURN_NAMES = ("cell_text", "row_number", "column_number")
+    FUNCTION = "read_from_excel"
+    CATEGORY = "JT/text"
+
+    def read_from_excel(self, Excel_Filepath: str, Excel_Filename: str, Row_Number: int, Column_Number: int) -> tuple[str, int, int]:
+        """Read text from specified position in Excel file
+        
+        Args:
+            Excel_Filepath: Excel file directory path
+            Excel_Filename: Excel file name
+            Row_Number: Row number to read from
+            Column_Number: Column number to read from
+            
+        Returns:
+            tuple: (cell text, row number, column number)
+        """
+        try:
+            # Process file path
+            file_dir = Path(Excel_Filepath)
+            # Ensure directory exists
+            file_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Handle file extension
+            if not any(Excel_Filename.endswith(ext) for ext in ['.xlsx', '.xls']):
+                Excel_Filename = f"{Excel_Filename}.xlsx"
+                
+            # Full file path
+            file_path = file_dir / Excel_Filename
+            
+            # Load Excel file
+            wb = openpyxl.load_workbook(file_path, data_only=True)
+            ws = wb.active
+            
+            # Check if position is valid
+            if Row_Number > ws.max_row:
+                raise ValueError(f"Row number {Row_Number} exceeds maximum row {ws.max_row}")
+            if Column_Number > ws.max_column:
+                raise ValueError(f"Column number {Column_Number} exceeds maximum column {ws.max_column}")
+            
+            # Get cell value
+            cell = ws.cell(row=Row_Number, column=Column_Number)
+            cell_text = str(cell.value) if cell.value is not None else ""
+            
+            wb.close()
+            return (cell_text, Row_Number, Column_Number)
+            
+        except Exception as e:
+            raise RuntimeError(f"Error reading Excel file: {str(e)}")
+
 # Node registration mappings
 NODE_CLASS_MAPPINGS = {
+    "JT Find Text From Excel": JTFindTextFromExcel,
+    "JT Read From Excel": JTReadFromExcel,
     "JTBrightness": JTBrightnessNode,
     "JTImagesavetopath": JTImagesavetopath,
     "JTcounter": JTcounter,
@@ -458,6 +691,8 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
+    "JT Find Text From Excel": "JT Find Text From Excel",
+    "JT Read From Excel": "JT Read From Excel",
     "JTBrightness": "JT Brightness Adjustment",
     "JTImagesavetopath": "JT Save Image to Path",
     "JTcounter": "JT Serial Counter",

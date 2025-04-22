@@ -2,12 +2,12 @@
 
 这个项目包含了一些自定义的ComfyUI节点，用于图像处理、AI对话和辅助工具任务。
 
-[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)]()
+[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)]()
 [![License](https://img.shields.io/badge/license-MIT-green.svg)]()
 
 ## 功能
 
-当前版本 (v1.2.0) 包含以下节点：
+当前版本 (v1.3.0) 包含以下节点：
 
 - **JT Siliconflow LLM**: Siliconflow API对话节点
   - 输入：
@@ -120,6 +120,38 @@
     - 如果输入文本包含多行，仅保存第一行
     - 自动创建或使用指定工作表
 
+- **JT Find Text From Excel**: Excel文本查找节点
+  - 输入：
+    - Excel_Filepath (STRING，默认: "/path")
+    - Excel_Filename (STRING，默认: "table")
+    - Find_Text (STRING)
+    - Output_Column (INT，1-16384)
+  - 输出：
+    - found_text: 找到的文本所在行的指定列内容
+    - row_number: 找到的文本所在行号
+    - column_number: 找到的文本所在列号
+  - 特点：
+    - 支持查找指定文本
+    - 返回查找结果同行的指定列内容
+    - 返回找到文本的精确位置
+    - 自动处理文件扩展名(.xlsx)
+
+- **JT Read From Excel**: Excel文本读取节点
+  - 输入：
+    - Excel_Filepath (STRING，默认: "/path")
+    - Excel_Filename (STRING，默认: "table")
+    - Row_Number (INT，1-1048576)
+    - Column_Number (INT，1-16384)
+  - 输出：
+    - cell_text: 指定位置的单元格文本
+    - row_number: 读取位置的行号
+    - column_number: 读取位置的列号
+  - 特点：
+    - 精确读取指定位置的内容
+    - 自动处理文件扩展名(.xlsx)
+    - 支持大规模Excel表格
+    - 返回完整的位置信息
+
 ## 安装说明
 
 1. 找到你的ComfyUI安装目录
@@ -160,6 +192,14 @@
 MIT License
 
 ## 更新日志
+
+### v1.3.0
+- 添加Excel处理节点：
+  - JT Find Text From Excel：在Excel文件中查找文本并返回指定列内容
+  - JT Read From Excel：读取Excel指定位置的文本内容
+- 优化文本处理功能
+- 改进参数命名规范
+- 加强错误处理机制
 
 ### v1.2.0
 - 添加文本处理节点：
